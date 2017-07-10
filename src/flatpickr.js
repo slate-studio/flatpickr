@@ -1067,7 +1067,9 @@ function FlatpickrInstance(element, config) {
 			"currentMonthElement", "currentYearElement", "navigationCurrentMonth",
 			"selectedDateElem", "config"
 		].forEach(k => {
-			try { delete self[k] }
+			try {
+				delete self[k]
+			}
 			catch (e) {}
 		})
 	}
