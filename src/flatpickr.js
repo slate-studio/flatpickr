@@ -1,9 +1,12 @@
-/*! flatpickr v2.6.3, @license MIT */
-function Flatpickr(element, config) {
+/*! flatpickr v3.0.6, @license MIT */
+function FlatpickrInstance(element, config) {
 	const self = this;
 
 	self._ = {};
 	self._.afterDayAnim = afterDayAnim;
+	self._bind = bind;
+	self._compareDates = compareDates;
+	self._setHoursFromDate = setHoursFromDate;
 	self.changeMonth = changeMonth;
 	self.changeYear = changeYear;
 	self.clear = clear;
@@ -21,8 +24,8 @@ function Flatpickr(element, config) {
 	function init() {
 		self.element = self.input = element;
 		self.instanceConfig = config || {};
-		self.parseDate = Flatpickr.prototype.parseDate.bind(self);
-		self.formatDate = Flatpickr.prototype.formatDate.bind(self);
+		self.parseDate = FlatpickrInstance.prototype.parseDate.bind(self);
+		self.formatDate = FlatpickrInstance.prototype.formatDate.bind(self);
 
 		setupFormats();
 		parseConfig();
@@ -54,15 +57,16 @@ function Flatpickr(element, config) {
 					? self.latestSelectedDateObj || self.config.minDate
 					: null);
 			}
-			updateValue();
+			updateValue(false);
 		}
+
+		self.showTimeInput = self.selectedDates.length > 0 || self.config.noCalendar;
 
 		if (self.config.weekNumbers) {
 			self.calendarContainer.style.width = self.daysContainer.offsetWidth
 				+ self.weekWrapper.offsetWidth + "px";
 		}
 
-		self.showTimeInput = self.selectedDates.length > 0 || self.config.noCalendar;
 
 		if (!self.isMobile)
 			positionCalendar();
@@ -281,8 +285,10 @@ function Flatpickr(element, config) {
 		bind(window.document, ["mousedown", "touchstart"], onClick(documentClick));
 		bind(self._input, "blur", documentClick);
 
-		if (self.config.clickOpens === true)
+		if (self.config.clickOpens === true) {
 			bind(self._input, "focus", self.open);
+			bind(self._input, "mousedown", onClick(self.open));
+		}
 
 		if (!self.config.noCalendar) {
 			self.monthNav.addEventListener("wheel", e => e.preventDefault());
@@ -1019,6 +1025,9 @@ function Flatpickr(element, config) {
 	}
 
 	function destroy() {
+		if (self.config !== undefined)
+			triggerEvent("Destroy");
+
 		for (let i = self._handlers.length; i--;) {
 			const h = self._handlers[i];
 			h.element.removeEventListener(h.event, h.handler);
@@ -1057,7 +1066,10 @@ function Flatpickr(element, config) {
 			"calendarContainer", "weekdayContainer", "prevMonthNav", "nextMonthNav",
 			"currentMonthElement", "currentYearElement", "navigationCurrentMonth",
 			"selectedDateElem", "config"
-		].forEach(k => delete self[k]);
+		].forEach(k => {
+			try { delete self[k] }
+			catch (e) {}
+		})
 	}
 
 	function isCalendarElem(elem) {
@@ -1083,8 +1095,7 @@ function Flatpickr(element, config) {
 				? isInput && e.relatedTarget && !isCalendarElem(e.relatedTarget)
 				: !isInput && !isCalendarElement;
 
-			if(lostFocus) {
-				e.preventDefault();
+			if(lostFocus && self.config.ignoredFocusElements.indexOf(e.target) === -1) {
 				self.close();
 
 				if (self.config.mode === "range" && self.selectedDates.length === 1) {
@@ -1251,6 +1262,7 @@ function Flatpickr(element, config) {
 						if (!isTimeObj)
 							self.hourElement.focus();
 						updateTime(e);
+						self.debouncedChange();					
 					}
 
 					break;
@@ -1362,7 +1374,7 @@ function Flatpickr(element, config) {
 			positionCalendar();
 	}
 
-	function open(e) {
+	function open(e, positionElement) {
 		if (self.isMobile) {
 			if (e) {
 				e.preventDefault();
@@ -1382,7 +1394,7 @@ function Flatpickr(element, config) {
 
 		self.isOpen = true;
 		self.calendarContainer.classList.add("open");
-		positionCalendar();
+		positionCalendar(positionElement);
 		self._input.classList.add("active");
 
 
@@ -1429,7 +1441,7 @@ function Flatpickr(element, config) {
 		];
 
 		let hooks = [
-			"onChange", "onClose", "onDayCreate", "onKeyDown", "onMonthChange",
+			"onChange", "onClose", "onDayCreate", "onDestroy", "onKeyDown", "onMonthChange",
 			"onOpen", "onParseConfig", "onReady", "onValueUpdate", "onYearChange"
 		];
 
@@ -1443,6 +1455,17 @@ function Flatpickr(element, config) {
 
 		self.config.parseDate = userConfig.parseDate;
 		self.config.formatDate = userConfig.formatDate;
+
+
+		Object.defineProperty(self.config, "enable", {
+			get: () => self.config._enable || [],
+			set: (dates) => self.config._enable = parseDateRules(dates)
+		});
+
+		Object.defineProperty(self.config, "disable", {
+			get: () => self.config._disable || [],
+			set: (dates) => self.config._disable = parseDateRules(dates)
+		});
 
 		Object.assign(self.config, userConfig);
 
@@ -1522,14 +1545,14 @@ function Flatpickr(element, config) {
 		);
 	}
 
-	function positionCalendar() {
+	function positionCalendar(positionElement = self._positionElement) {
 		if (self.calendarContainer === undefined)
 			return;
 
 		const calendarHeight = self.calendarContainer.offsetHeight,
 			calendarWidth = self.calendarContainer.offsetWidth,
 			configPos = self.config.position,
-			inputBounds = self._positionElement.getBoundingClientRect(),
+			inputBounds = positionElement.getBoundingClientRect(),
 			distanceFromBottom = window.innerHeight - inputBounds.bottom,
 			showOnTop = configPos === "above" || (
 				configPos !== "below"
@@ -1538,7 +1561,7 @@ function Flatpickr(element, config) {
 			);
 
 		let top = (window.pageYOffset + inputBounds.top) + (!showOnTop
-			? (self._positionElement.offsetHeight + 2)
+			? (positionElement.offsetHeight + 2)
 			: (- calendarHeight - 2)
 		);
 
@@ -1688,7 +1711,11 @@ function Flatpickr(element, config) {
 	}
 
 	function set(option, value) {
-		self.config[option] = value;
+		if (option !== null && typeof option === "object") 
+			Object.assign(self.config, option)
+		else
+			self.config[option] = value;
+		
 		self.redraw();
 		jumpToDate();
 	}
@@ -1731,7 +1758,7 @@ function Flatpickr(element, config) {
 	}
 
 	function setDate(date, triggerChange, format) {
-		if (!date)
+		if (date !== 0 && !date)
 			return self.clear(triggerChange);
 
 		setSelectedDate(date, format);
@@ -1749,29 +1776,23 @@ function Flatpickr(element, config) {
 			triggerEvent("Change");
 	}
 
-	function setupDates() {
-		function parseDateRules(arr) {
-			for (let i = arr.length; i--;) {
-				if (typeof arr[i] === "string" || +arr[i])
-					arr[i] = self.parseDate(arr[i], null, true);
+	function parseDateRules(arr) {
+		for (let i = arr.length; i--;) {
+			if (typeof arr[i] === "string" || +arr[i])
+				arr[i] = self.parseDate(arr[i], null, true);
 
-				else if (arr[i] && arr[i].from && arr[i].to) {
-					arr[i].from = self.parseDate(arr[i].from);
-					arr[i].to = self.parseDate(arr[i].to);
-				}
+			else if (arr[i] && arr[i].from && arr[i].to) {
+				arr[i].from = self.parseDate(arr[i].from);
+				arr[i].to = self.parseDate(arr[i].to);
 			}
-
-			return arr.filter(x => x); // remove falsy values
 		}
 
+		return arr.filter(x => x); // remove falsy values
+	}
+
+	function setupDates() {
 		self.selectedDates = [];
 		self.now = new Date();
-
-		if (self.config.disable.length)
-			self.config.disable = parseDateRules(self.config.disable);
-
-		if (self.config.enable.length)
-			self.config.enable = parseDateRules(self.config.enable);
 
 		const preloadedDate = self.config.defaultDate || self.input.value;
 		if (preloadedDate)
@@ -1857,13 +1878,13 @@ function Flatpickr(element, config) {
 
 	/* istanbul ignore next */
 	function setupFormats() {
-		self.formats = Object.create(Flatpickr.prototype.formats);
+		self.formats = Object.create(FlatpickrInstance.prototype.formats);
 		["D", "F", "J", "M", "W", "l"].forEach(f => {
-			self.formats[f] = Flatpickr.prototype.formats[f].bind(self);
+			self.formats[f] = FlatpickrInstance.prototype.formats[f].bind(self);
 		});
 
-		self.revFormat.F = Flatpickr.prototype.revFormat.F.bind(self);
-		self.revFormat.M = Flatpickr.prototype.revFormat.M.bind(self);
+		self.revFormat.F = FlatpickrInstance.prototype.revFormat.F.bind(self);
+		self.revFormat.M = FlatpickrInstance.prototype.revFormat.M.bind(self);
 	}
 
 	function setupInputs() {
@@ -1890,6 +1911,7 @@ function Flatpickr(element, config) {
 			self._input = self.altInput;
 			self.altInput.placeholder = self.input.placeholder;
 			self.altInput.disabled = self.input.disabled;
+			self.altInput.required = self.input.required;
 			self.altInput.type = "text";
 			self.input.type = "hidden";
 
@@ -1909,7 +1931,7 @@ function Flatpickr(element, config) {
 			: "date";
 
 		self.mobileInput = createElement("input", self.input.className + " flatpickr-mobile");
-		self.mobileInput.step = "any";
+		self.mobileInput.step = self.input.getAttribute("step") || "any";
 		self.mobileInput.tabIndex = 1;
 		self.mobileInput.type = inputType;
 		self.mobileInput.disabled = self.input.disabled;
@@ -2046,7 +2068,9 @@ function Flatpickr(element, config) {
 				.map(dObj => self.formatDate(dObj, self.config.altFormat))
 				.join(joinChar);
 		}
-		triggerEvent("ValueUpdate");
+
+		if (triggerChange !== false)
+			triggerEvent("ValueUpdate");
 	}
 
 	function mouseDelta(e) {
@@ -2212,7 +2236,7 @@ function Flatpickr(element, config) {
 	return self;
 }
 
-Flatpickr.prototype = {
+FlatpickrInstance.prototype = {
 	formats: {
 		// get the date in UTC
 		Z: date => date.toISOString(),
@@ -2229,13 +2253,13 @@ Flatpickr.prototype = {
 
 		// padded hour 1-12
 		G: function (date) {
-			return Flatpickr.prototype.pad(
-				Flatpickr.prototype.formats.h(date)
+			return FlatpickrInstance.prototype.pad(
+				FlatpickrInstance.prototype.formats.h(date)
 			)
 		},
 
 		// hours with leading zero e.g. 03
-		H: date => Flatpickr.prototype.pad(date.getHours()),
+		H: date => FlatpickrInstance.prototype.pad(date.getHours()),
 
 		// day (1-30) with ordinal suffix e.g. 1st, 2nd
 		J: function (date) {
@@ -2251,7 +2275,7 @@ Flatpickr.prototype = {
 		},
 
 		// seconds 00-59
-		S: date => Flatpickr.prototype.pad(date.getSeconds()),
+		S: date => FlatpickrInstance.prototype.pad(date.getSeconds()),
 
 		// unix timestamp
 		U: date => date.getTime() / 1000,
@@ -2264,13 +2288,13 @@ Flatpickr.prototype = {
 		Y: date => date.getFullYear(),
 
 		// day in month, padded (01-30)
-		d: date => Flatpickr.prototype.pad(date.getDate()),
+		d: date => FlatpickrInstance.prototype.pad(date.getDate()),
 
 		// hour from 1-12 (am/pm)
 		h: date => date.getHours() % 12 ? date.getHours() % 12 : 12,
 
 		// minutes, padded with leading zero e.g. 09
-		i: date => Flatpickr.prototype.pad(date.getMinutes()),
+		i: date => FlatpickrInstance.prototype.pad(date.getMinutes()),
 
 		// day in month (1-30)
 		j: date => date.getDate(),
@@ -2281,7 +2305,7 @@ Flatpickr.prototype = {
 		},
 
 		// padded month number (01-12)
-		m: date => Flatpickr.prototype.pad(date.getMonth() + 1),
+		m: date => FlatpickrInstance.prototype.pad(date.getMonth() + 1),
 
 		// the month number (1-12)
 		n: date => date.getMonth() + 1,
@@ -2383,7 +2407,7 @@ Flatpickr.prototype = {
 		G: "(\\d\\d|\\d)",
 		H:"(\\d\\d|\\d)",
 		J:"(\\d\\d|\\d)\\w+",
-		K:"(\\w+)",
+		K:"(am|AM|Am|aM|pm|PM|Pm|pM)",
 		M:"(\\w+)",
 		S:"(\\d\\d|\\d)",
 		U: "(.+)",
@@ -2412,7 +2436,7 @@ Flatpickr.prototype = {
 	 * @return {Date} the parsed Date object
 	 */
 	parseDate (date, givenFormat, timeless) {
-		if (!date)
+		if (date !== 0 && !date)
 			return null;
 
 		const date_orig = date;
@@ -2489,12 +2513,15 @@ function _flatpickr(nodeList, config) {
 	let instances = [];
 	for (let i = 0; i < nodes.length; i++) {
 		try {
+			if (nodes[i].getAttribute("data-fp-omit") !== null)
+				continue;
+
 			if (nodes[i]._flatpickr) {
 				nodes[i]._flatpickr.destroy();
 				nodes[i]._flatpickr = null;
 			}
 
-			nodes[i]._flatpickr = new Flatpickr(nodes[i], config || {});
+			nodes[i]._flatpickr = new FlatpickrInstance(nodes[i], config || {});
 			instances.push(nodes[i]._flatpickr);
 		}
 
@@ -2520,13 +2547,17 @@ if (typeof HTMLElement !== "undefined") { // browser env
 
 /* istanbul ignore next */
 function flatpickr(selector, config) {
-	if (!(selector instanceof HTMLElement))
+	if (selector instanceof NodeList)
+		return _flatpickr(selector, config);
+
+	else if (!(selector instanceof HTMLElement))
 		return _flatpickr(window.document.querySelectorAll(selector), config);
+
 	return _flatpickr([selector], config);
 }
 
 /* istanbul ignore next */
-flatpickr.defaultConfig = Flatpickr.defaultConfig = {
+flatpickr.defaultConfig = FlatpickrInstance.defaultConfig = {
 	mode: "single",
 
 	position: "auto",
@@ -2645,6 +2676,8 @@ flatpickr.defaultConfig = Flatpickr.defaultConfig = {
 
 	plugins: [],
 
+	ignoredFocusElements: [],
+
 	// called every time calendar is closed
 	onClose: undefined, // function (dateObj, dateStr) {}
 
@@ -2672,7 +2705,9 @@ flatpickr.defaultConfig = Flatpickr.defaultConfig = {
 	// called every time the year is changed
 	onYearChange: undefined,
 
-	onKeyDown: undefined
+	onKeyDown: undefined,
+
+	onDestroy: undefined
 };
 
 /* istanbul ignore next */
