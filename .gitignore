@@ -3,7 +3,7 @@
 /node_modules/
 *.sublime-project
 *.sublime-workspace
-.idea/index.html
+.idea
 index.html
 coverage
 .tern-port
