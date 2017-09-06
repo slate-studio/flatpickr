@@ -25,8 +25,8 @@ function weekSelectPlugin(pluginConfig) {
 			for (var i = days.length; i--;) {
 				var date = days[i].dateObj;
 				if (date >= fp.weekStartDay && date <= fp.weekEndDay) {
-          days[i].classList.add("week");
-          days[i].classList.add("selected");
+					days[i].classList.add("week");
+					days[i].classList.add("selected");
 				}
 			}
 		}

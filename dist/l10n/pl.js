@@ -1,5 +1,5 @@
 /* Polish locals for flatpickr */
-var flatpickr = flatpickr || { l10ns: {} };
+var flatpickr = flatpickr || {l10ns: {}};
 flatpickr.l10ns.pl = {};
 
 flatpickr.l10ns.pl.weekdays = {
@@ -12,7 +12,9 @@ flatpickr.l10ns.pl.months = {
 	longhand: ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"]
 };
 
-flatpickr.l10ns.pl.ordinal = function () {
+flatpickr.l10ns.pl.ordinal = () => {
 	return ".";
 };
-if (typeof module !== "undefined") module.exports = flatpickr.l10ns;
+if (typeof module !== "undefined") 
+	module.exports = flatpickr.l10ns;
+
