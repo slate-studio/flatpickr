@@ -43,7 +43,8 @@ function weekSelectPlugin() {
       for (let i = days.length; i--; ) {
         const date = (days[i] as DayElement).dateObj;
         if (date >= fp.weekStartDay && date <= fp.weekEndDay)
-          (days[i] as DayElement).classList.add("week", "selected");
+          (days[i] as DayElement).classList.add("week");
+        (days[i] as DayElement).classList.add("selected");
       }
     }
 
