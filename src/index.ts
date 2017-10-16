@@ -293,7 +293,7 @@ function FlatpickrInstance(
   }
 
   /**
-   * A mousedown handler which mimics click.
+   * A mousedown/touchstart handler which mimics click.
    * Minimizes latency, since we don't need to wait for mouseup in most cases.
    * Also, avoids handling right clicks.
    *
@@ -302,7 +302,12 @@ function FlatpickrInstance(
   function onClick<E extends MouseEvent>(
     handler: (e: E) => void
   ): (e: E) => void {
-    return evt => evt.which === 1 && handler(evt);
+    return evt => {
+      if (window.ontouchstart !== undefined) {
+        if (evt.type !== "touchstart") return;
+      } else if (evt.which !== 1) return;
+      return handler(evt);
+    };
   }
 
   function triggerChange() {
@@ -345,24 +350,33 @@ function FlatpickrInstance(
     if (!self.config.inline && !self.config.static)
       bind(window, "resize", debouncedResize);
 
-    if (window.ontouchstart !== undefined)
-      bind(window.document.body, "touchstart", documentClick);
-
-    bind(window.document.body, "mousedown", onClick(documentClick));
+    bind(
+      window.document.body,
+      ["mousedown", "touchstart"],
+      onClick(documentClick)
+    );
     bind(self._input, "blur", documentClick);
 
     if (self.config.clickOpens === true) {
       bind(self._input, "focus", self.open);
-      bind(self._input, "mousedown", onClick(self.open));
+      bind(self._input, ["mousedown", "touchstart"], onClick(self.open));
     }
 
     if (self.daysContainer !== undefined) {
       self.monthNav.addEventListener("wheel", e => e.preventDefault());
       bind(self.monthNav, "wheel", debounce(onMonthNavScroll, 10));
-      bind(self.monthNav, "mousedown", onClick(onMonthNavClick));
+      bind(
+        self.monthNav,
+        ["mousedown", "touchstart"],
+        onClick(onMonthNavClick)
+      );
 
       bind(self.monthNav, ["keyup", "increment"], onYearInput);
-      bind(self.daysContainer, "mousedown", onClick(selectDate));
+      bind(
+        self.daysContainer,
+        ["mousedown", "touchstart"],
+        onClick(selectDate)
+      );
 
       if (self.config.animate) {
         bind(
@@ -386,7 +400,11 @@ function FlatpickrInstance(
       const selText = (e: FocusEvent) =>
         (e.target as HTMLInputElement).select();
       bind(self.timeContainer, ["wheel", "input", "increment"], updateTime);
-      bind(self.timeContainer, "mousedown", onClick(timeIncrement));
+      bind(
+        self.timeContainer,
+        ["mousedown", "touchstart"],
+        onClick(timeIncrement)
+      );
 
       bind(self.timeContainer, ["wheel", "increment"], self._debouncedChange);
       bind(self.timeContainer, "input", triggerChange);
@@ -403,7 +421,7 @@ function FlatpickrInstance(
       if (self.amPM !== undefined) {
         bind(
           self.amPM,
-          "mousedown",
+          ["mousedown", "touchstart"],
           onClick(e => {
             updateTime(e);
             triggerChange();
