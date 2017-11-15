@@ -34,8 +34,9 @@
 
       var fp1Callbacks = {
         onParseConfig: function () {
-          fp.config.inline = true;
-          fp.config.mode   = 'single';
+          fp.config.inline  = true;
+          fp.config.mode    = 'single';
+          fp.config.animate = false;
 
           fp2Options = {
             plugins:        [],
@@ -44,7 +45,8 @@
             nextArrow:      fp.config.nextArrow,
             prevArrow:      fp.config.prevArrow,
             ariaDateFormat: fp.config.ariaDateFormat,
-            onDayShow:      fp.config.onDayShow
+            onDayShow:      fp.config.onDayShow,
+            animate:        false
           };
         },
         onReady: function () {
@@ -65,7 +67,7 @@
           fp2YearParent.removeChild(fp2YearParent.childNodes[2]);
           fp2YearParent.removeChild(fp2YearParent.childNodes[1]);
         },
-        onChange: function () {
+        onChange: function (selectedDates, dateStr, instance) {
           var month = fp.currentMonth;
           var year  = fp.currentYear;
           var date  = new Date(year, month + 2, 1);
@@ -74,19 +76,19 @@
           var secondMonth = date.getMonth();
 
           if(secondMonth < 10) {
-            secondMonth = '0'+secondMonth
+            secondMonth = '0'+secondMonth;
           }
-          var secondDate  = secondMonth + '-01-' + secondYear
+          var secondDate  = secondMonth + '-01-' + secondYear;
           fp2.setDate(secondDate, true, 'm-d-Y');
         },
         onMonthChange: function () {
           var skipEvent = fp.prevMonthNav.getAttribute('data-skip-event')
           if(skipEvent) {
-            fp.prevMonthNav.removeAttribute('data-skip-event')
+            fp.prevMonthNav.removeAttribute('data-skip-event');
             return;
           }
 
-          fp2.nextMonthNav.setAttribute('data-skip-event', 'true')
+          fp2.nextMonthNav.setAttribute('data-skip-event', 'true');
           fp2.changeMonth(-1, true, undefined, true);
         },
         onDayCreate: function (selectedDates, value, fpInstance, dayElement) {
@@ -96,17 +98,17 @@
       }
 
       var fp2Callbacks = {
-        onChange: function () {
-
+        onChange: function (selectedDates, dateStr, instance) {
+          fp.config.onDateSelect(selectedDates)
         },
         onMonthChange: function () {
-          var skipEvent = fp2.nextMonthNav.getAttribute('data-skip-event')
+          var skipEvent = fp2.nextMonthNav.getAttribute('data-skip-event');
           if(skipEvent) {
-            fp2.nextMonthNav.removeAttribute('data-skip-event')
+            fp2.nextMonthNav.removeAttribute('data-skip-event');
             return;
           }
 
-          fp.prevMonthNav.setAttribute('data-skip-event', 'true')
+          fp.prevMonthNav.setAttribute('data-skip-event', 'true');
           fp.changeMonth(1, true, undefined, true);
         },
         onDayCreate: function (selectedDates, value, fpInstance, dayElement) {
@@ -117,6 +119,7 @@
 
       function configDay(dayElement) {
         var dateStr =  dayElement.getAttribute('aria-label');
+
         if(dateStr) {
           var date = new Date(dateStr);
           var dayWeekIndex = date.getDay();
