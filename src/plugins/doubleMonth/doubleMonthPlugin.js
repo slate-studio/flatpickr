@@ -37,6 +37,7 @@
           fp.config.inline  = true;
           fp.config.mode    = 'single';
           fp.config.animate = false;
+          fp.config.disableScrollNavigation = true;
 
           fp2Options = {
             plugins:        [],
@@ -46,7 +47,8 @@
             prevArrow:      fp.config.prevArrow,
             ariaDateFormat: fp.config.ariaDateFormat,
             onDayShow:      fp.config.onDayShow,
-            animate:        false
+            animate:        false,
+            disableScrollNavigation: true
           };
         },
         onReady: function () {
@@ -79,7 +81,8 @@
             secondMonth = '0'+secondMonth;
           }
           var secondDate  = secondMonth + '-01-' + secondYear;
-          fp2.setDate(secondDate, true, 'm-d-Y');
+          fp2.setDate(secondDate, false, 'm-d-Y');
+          fp.config.onDateSelect(instance.input.value);
         },
         onMonthChange: function () {
           var skipEvent = fp.prevMonthNav.getAttribute('data-skip-event')
@@ -99,7 +102,7 @@
 
       var fp2Callbacks = {
         onChange: function (selectedDates, dateStr, instance) {
-          fp.config.onDateSelect(selectedDates)
+          fp.config.onDateSelect(instance.input.value);
         },
         onMonthChange: function () {
           var skipEvent = fp2.nextMonthNav.getAttribute('data-skip-event');

@@ -273,6 +273,9 @@ export interface ParsedOptions {
   time_24hr: boolean;
   weekNumbers: boolean;
   wrap: boolean;
+  disableScrollNavigation?: boolean;
+  onDayShow?: any;
+  onDateSelect?: any;
 }
 
 export const defaults: ParsedOptions = {
@@ -327,4 +330,7 @@ export const defaults: ParsedOptions = {
   time_24hr: false,
   weekNumbers: false,
   wrap: false,
+  disableScrollNavigation: false,
+  onDayShow: [],
+  onDateSelect: [],
 };
