@@ -364,7 +364,10 @@ function FlatpickrInstance(
 
     if (self.daysContainer !== undefined) {
       self.monthNav.addEventListener("wheel", e => e.preventDefault());
-      bind(self.monthNav, "wheel", debounce(onMonthNavScroll, 10));
+
+      if (!self.config.disableScrollNavigation)
+        bind(self.monthNav, "wheel", debounce(onMonthNavScroll, 10));
+
       bind(
         self.monthNav,
         ["mousedown", "touchstart"],
@@ -399,7 +402,10 @@ function FlatpickrInstance(
     ) {
       const selText = (e: FocusEvent) =>
         (e.target as HTMLInputElement).select();
-      bind(self.timeContainer, ["wheel", "input", "increment"], updateTime);
+
+      if (!self.config.disableScrollNavigation)
+        bind(self.timeContainer, ["wheel", "input", "increment"], updateTime);
+
       bind(
         self.timeContainer,
         ["mousedown", "touchstart"],
@@ -919,11 +925,14 @@ function FlatpickrInstance(
       "span",
       "cur-month"
     );
-    self.currentMonthElement.title = self.l10n.scrollTitle;
+    if (!self.config.disableScrollNavigation)
+      self.currentMonthElement.title = self.l10n.scrollTitle;
 
     const yearInput = createNumberInput("cur-year");
     self.currentYearElement = yearInput.childNodes[0] as HTMLInputElement;
-    self.currentYearElement.title = self.l10n.scrollTitle;
+
+    if (!self.config.disableScrollNavigation)
+      self.currentYearElement.title = self.l10n.scrollTitle;
 
     if (self.config.minDate)
       self.currentYearElement.min = self.config.minDate
@@ -1018,7 +1027,8 @@ function FlatpickrInstance(
     self.minuteElement.min = "0";
     self.minuteElement.max = "59";
 
-    self.hourElement.title = self.minuteElement.title = self.l10n.scrollTitle;
+    if (!self.config.disableScrollNavigation)
+      self.hourElement.title = self.minuteElement.title = self.l10n.scrollTitle;
 
     self.timeContainer.appendChild(hourInput);
     self.timeContainer.appendChild(separator);
