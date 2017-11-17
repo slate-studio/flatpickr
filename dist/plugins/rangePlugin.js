@@ -29,7 +29,7 @@ function rangePlugin(config) {
                     fp.jumpToDate(fp.selectedDates[1]);
                 }
                 fp.open(e, secondInput);
-                _a = [false, true], _firstInputFocused = _a[0], _secondInputFocused = _a[1];
+                _a = [false, true], _secondInputFocused = _a[1];
                 var _a;
             });
             fp._bind(fp._input, "focus", function () {
@@ -63,7 +63,7 @@ function rangePlugin(config) {
                 fp._bind(fp._input, "focus", function () {
                     fp.latestSelectedDateObj = fp.selectedDates[0];
                     fp._setHoursFromDate(fp.selectedDates[0]);
-                    _a = [true, false], _firstInputFocused = _a[0], _secondInputFocused = _a[1];
+                    _a = [true, false], _secondInputFocused = _a[1];
                     fp.jumpToDate(fp.selectedDates[0]);
                     var _a;
                 });

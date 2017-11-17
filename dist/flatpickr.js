@@ -100,6 +100,9 @@ var defaults = {
     time_24hr: false,
     weekNumbers: false,
     wrap: false,
+    disableScrollNavigation: false,
+    onDayShow: [],
+    onDateSelect: [],
 };
 
 var english = {
@@ -582,7 +585,8 @@ function FlatpickrInstance(element, instanceConfig) {
         }
         if (self.daysContainer !== undefined) {
             self.monthNav.addEventListener("wheel", function (e) { return e.preventDefault(); });
-            bind(self.monthNav, "wheel", debounce(onMonthNavScroll, 10));
+            if (!self.config.disableScrollNavigation)
+                bind(self.monthNav, "wheel", debounce(onMonthNavScroll, 10));
             bind(self.monthNav, ["mousedown", "touchstart"], onClick(onMonthNavClick));
             bind(self.monthNav, ["keyup", "increment"], onYearInput);
             bind(self.daysContainer, ["mousedown", "touchstart"], onClick(selectDate));
@@ -597,7 +601,8 @@ function FlatpickrInstance(element, instanceConfig) {
             var selText = function (e) {
                 return e.target.select();
             };
-            bind(self.timeContainer, ["wheel", "input", "increment"], updateTime);
+            if (!self.config.disableScrollNavigation)
+                bind(self.timeContainer, ["wheel", "input", "increment"], updateTime);
             bind(self.timeContainer, ["mousedown", "touchstart"], onClick(timeIncrement));
             bind(self.timeContainer, ["wheel", "increment"], self._debouncedChange);
             bind(self.timeContainer, "input", triggerChange);
@@ -885,10 +890,12 @@ function FlatpickrInstance(element, instanceConfig) {
         self.prevMonthNav = createElement("span", "flatpickr-prev-month");
         self.prevMonthNav.innerHTML = self.config.prevArrow;
         self.currentMonthElement = createElement("span", "cur-month");
-        self.currentMonthElement.title = self.l10n.scrollTitle;
+        if (!self.config.disableScrollNavigation)
+            self.currentMonthElement.title = self.l10n.scrollTitle;
         var yearInput = createNumberInput("cur-year");
         self.currentYearElement = yearInput.childNodes[0];
-        self.currentYearElement.title = self.l10n.scrollTitle;
+        if (!self.config.disableScrollNavigation)
+            self.currentYearElement.title = self.l10n.scrollTitle;
         if (self.config.minDate)
             self.currentYearElement.min = self.config.minDate
                 .getFullYear()
@@ -955,7 +962,8 @@ function FlatpickrInstance(element, instanceConfig) {
         self.hourElement.max = self.config.time_24hr ? "23" : "12";
         self.minuteElement.min = "0";
         self.minuteElement.max = "59";
-        self.hourElement.title = self.minuteElement.title = self.l10n.scrollTitle;
+        if (!self.config.disableScrollNavigation)
+            self.hourElement.title = self.minuteElement.title = self.l10n.scrollTitle;
         self.timeContainer.appendChild(hourInput);
         self.timeContainer.appendChild(separator);
         self.timeContainer.appendChild(minuteInput);
